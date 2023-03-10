@@ -3,8 +3,11 @@
 // BSD-style license that can be found in the LICENSE file.
 
 import 'dart:async';
+import 'dart:convert';
 import 'dart:math';
+import 'dart:typed_data';
 
+import 'package:enough_convert/enough_convert.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_blue/flutter_blue.dart';
 import 'package:flutter_blue_example/widgets.dart';
@@ -54,7 +57,7 @@ class BluetoothOffScreen extends StatelessWidget {
               'Bluetooth Adapter is ${state != null ? state.toString().substring(15) : 'not available'}.',
               style: Theme.of(context)
                   .primaryTextTheme
-                  .subhead
+                  .headlineSmall
                   ?.copyWith(color: Colors.white),
             ),
           ],
@@ -92,12 +95,14 @@ class FindDevicesScreen extends StatelessWidget {
                               builder: (c, snapshot) {
                                 if (snapshot.data ==
                                     BluetoothDeviceState.connected) {
-                                  return RaisedButton(
+                                  return ElevatedButton(
                                     child: Text('OPEN'),
-                                    onPressed: () => Navigator.of(context).push(
-                                        MaterialPageRoute(
-                                            builder: (context) =>
-                                                DeviceScreen(device: d))),
+                                    onPressed: () {},
+                                    // onPressed: () => Navigator.of(context).push(
+                                    //     // MaterialPageRoute(
+                                    //     //     builder: (context) =>
+                                    //     //         DeviceScreen(device: d)),
+                                    //     ),
                                   );
                                 }
                                 return Text(snapshot.data.toString());
@@ -118,7 +123,9 @@ class FindDevicesScreen extends StatelessWidget {
                           onTap: () => Navigator.of(context)
                               .push(MaterialPageRoute(builder: (context) {
                             r.device.connect();
-                            return DeviceScreen(device: r.device);
+                            return DeviceScreen(
+                              scanResult: r,
+                            );
                           })),
                         ),
                       )
@@ -152,18 +159,91 @@ class FindDevicesScreen extends StatelessWidget {
 }
 
 class DeviceScreen extends StatelessWidget {
-  const DeviceScreen({Key? key, required this.device}) : super(key: key);
+  const DeviceScreen({
+    Key? key,
+    required this.scanResult,
+    // required this.device,
+  }) : super(key: key);
 
-  final BluetoothDevice device;
+  // final BluetoothDevice device;
+  final ScanResult scanResult;
 
   List<int> _getRandomBytes() {
     final math = Random();
-    return [
-      math.nextInt(255),
-      math.nextInt(255),
-      math.nextInt(255),
-      math.nextInt(255)
-    ];
+    String text =
+        "SIZE 75 mm,129 mm\n GAP 2 mm,0 mm\n DIRECTION 1\n CLS\n TEXT 480,100,\"TSS16.BF2\",0,1,1,1,\"自取\"\n BOX 12,304,572,1032,2\n BAR 12,384,560,2\n BAR 12,464,560,2\n BAR 364,464,2,208\n CIRCLE 20,488,60,4\n BAR 12,672,560,2\n BAR 12,840,560,2\n TEXT 384,24,\"TSS24.BF2\",0,2,2,3,\"顺丰特快\"\n TEXT 52,100,\"TSS16.BF2\",0,1,1,1,\"已验视 2023-02-13 16:14:08\"\n BARCODE 52,124,\"128\",108,0,0,3,3,2,\"SF1342689927326\"\n TEXT 164,248,\"0\",0,1,1,\"SF1 342 689 927 326\"\n TEXT 16,312,\"0\",0,3,3,\"010SY-010\"\n TEXT 48,388,\"0\",0,3,3,\"WU\"\n BLOCK 24,680,500,80,\"TSS24.BF2\",0,1,1,\"寄 沙*宁 1******9023\"\n BLOCK 24,720,520,100,\"TSS24.BF2\",0,1,1,\"北京市北京市丰台区库存***提库\"\n TEXT 28,496,\"TSS24.BF2\",0,2,2,\"收\"\n TEXT 100,504,\"TSS16.BF2\",0,2,2,\"汉光百货\"\n TEXT 224,504,\"TSS16.BF2\",0,2,2,\"0******8999\"\n BLOCK 24,568,328,50,\"TSS24.BF2\",0,1,1,\"北京北京西城区西单北大街176号\"\n QRCODE 371,471,Q,4,A,0,M2,S7,\"MMM={'k1':'010SY','k2':'010','k3':'','k4':'T4','k5':'SF1342689927326','k6':'','k7':'989738e8'}\"\n TEXT -4,400,\"A.FNT\",270,2,2,E8,\"SF1342689927326\"\n TEXT 574,400,\"A.FNT\",270,2,2,E8,\"SF1342689927326\"\n TEXT -4,670,\"A.FNT\",270,2,2,E8,\"SF1342689927326\"\n TEXT 574,670,\"A.FNT\",270,2,2,E8,\"SF1342689927326\"\n TEXT -4,960,\"A.FNT\",270,2,2,E8,\"SF1342689927326\"\n TEXT 574,960,\"A.FNT\",270,2,2,E8,\"SF1342689927326\"\n PRINT 1,1\n ";
+    final uint8List = Uint8List.fromList(utf8.encode(text + "\r\n"));
+
+    print("uint8List=${uint8List.toString()}");
+    // return [
+
+    //   math.nextInt(255),
+    //   math.nextInt(255),
+    //   math.nextInt(255),
+    //   math.nextInt(255)
+    // ];
+
+    return uint8List.toList();
+  }
+
+  Future doPrint() async {
+    print("doPrint...");
+    const String crlf = '\r\n';
+    Uint8List defNewlineBinary = Uint8List.fromList(utf8.encode(crlf));
+    const gbkCodec = GbkCodec(allowInvalid: false);
+    String text =
+        "SIZE 75 mm,129 mm\n GAP 2 mm,0 mm\n DIRECTION 1\n CLS\n TEXT 480,100,\"TSS16.BF2\",0,1,1,1,\"自取\"\n BOX 12,304,572,1032,2\n BAR 12,384,560,2\n BAR 12,464,560,2\n BAR 364,464,2,208\n CIRCLE 20,488,60,4\n BAR 12,672,560,2\n BAR 12,840,560,2\n TEXT 384,24,\"TSS24.BF2\",0,2,2,3,\"顺丰特快\"\n TEXT 52,100,\"TSS16.BF2\",0,1,1,1,\"已验视 2023-02-13 16:14:08\"\n BARCODE 52,124,\"128\",108,0,0,3,3,2,\"SF1342689927326\"\n TEXT 164,248,\"0\",0,1,1,\"SF1 342 689 927 326\"\n TEXT 16,312,\"0\",0,3,3,\"010SY-010\"\n TEXT 48,388,\"0\",0,3,3,\"WU\"\n BLOCK 24,680,500,80,\"TSS24.BF2\",0,1,1,\"寄 沙*宁 1******9023\"\n BLOCK 24,720,520,100,\"TSS24.BF2\",0,1,1,\"北京市北京市丰台区库存***提库\"\n TEXT 28,496,\"TSS24.BF2\",0,2,2,\"收\"\n TEXT 100,504,\"TSS16.BF2\",0,2,2,\"汉光百货\"\n TEXT 224,504,\"TSS16.BF2\",0,2,2,\"0******8999\"\n BLOCK 24,568,328,50,\"TSS24.BF2\",0,1,1,\"北京北京西城区西单北大街176号\"\n QRCODE 371,471,Q,4,A,0,M2,S7,\"MMM={'k1':'010SY','k2':'010','k3':'','k4':'T4','k5':'SF1342689927326','k6':'','k7':'989738e8'}\"\n TEXT -4,400,\"A.FNT\",270,2,2,E8,\"SF1342689927326\"\n TEXT 574,400,\"A.FNT\",270,2,2,E8,\"SF1342689927326\"\n TEXT -4,670,\"A.FNT\",270,2,2,E8,\"SF1342689927326\"\n TEXT 574,670,\"A.FNT\",270,2,2,E8,\"SF1342689927326\"\n TEXT -4,960,\"A.FNT\",270,2,2,E8,\"SF1342689927326\"\n TEXT 574,960,\"A.FNT\",270,2,2,E8,\"SF1342689927326\"\n PRINT 1,1\n ";
+
+    final uint8List = Uint8List.fromList(gbkCodec.encode(text));
+    // BluetoothCharacteristic bluetoothCharacteristic;
+    // List<BluetoothService> blueServices =
+    //     await scanResult.device.services.first;
+    // BluetoothService bleService = blueServices.first;
+    // print("bleService-uuid=${bleService.uuid.toString()}");
+    // List<BluetoothCharacteristic> characteristics = bleService.characteristics;
+    // BluetoothCharacteristic characteristic = characteristics.first;
+    // print("characteristic-uuid=${characteristic.uuid.toString()}");
+    // await characteristic.write(uint8List);
+
+    // ///
+    // print("${characteristics.length}");
+    // characteristics.forEach((characteristic) {
+    //   print("characteristic-1-uuid=${characteristic.uuid}");
+    // });
+
+    List<BluetoothService> blueServices =
+        await scanResult.device.discoverServices();
+    BluetoothService bleService = blueServices.first;
+    print("bleService-uuid=${bleService.uuid.toString()}");
+    List<BluetoothCharacteristic> characteristics = bleService.characteristics;
+    BluetoothCharacteristic characteristic = characteristics.first;
+    print("characteristic-uuid=${characteristic.uuid.toString()}");
+    await characteristic.write(uint8List);
+    // return scanResult.device.services.listen((service) async {
+    //   print("listen");
+
+    //   service.forEach((s) {
+    //     print("uuid=${s.uuid.toString()}");
+    //     scanResult.advertisementData.serviceUuids.forEach((serviceUuid) {
+    //       if (s.uuid.toString() == serviceUuid) {
+    //         print("serviceUuid=$serviceUuid");
+
+    //         s.characteristics.forEach((c) {
+    //           print("s.uuid.toString()=${s.uuid.toString()}");
+    //           print("c.uuid.toString()=${c.uuid.toString()}");
+    //           bluetoothCharacteristic = c;
+    //           if (s.uuid.toString() == c.uuid.toString()) {
+    //             print(
+    //                 "s.uuid.toString() == c.uuid.toString()=${c.uuid.toString()}");
+    //             print(
+    //                 "s.uuid.toString() == c.uuid.toString()=${c.uuid.toMac()}");
+    //           }
+    //         });
+    //       }
+    //     });
+    //   });
+    // });
+    // scanResult.
   }
 
   List<Widget> _buildServiceTiles(List<BluetoothService> services) {
@@ -177,8 +257,9 @@ class DeviceScreen extends StatelessWidget {
                     characteristic: c,
                     onReadPressed: () => c.read(),
                     onWritePressed: () async {
+                      await doPrint();
                       await c.write(_getRandomBytes(), withoutResponse: true);
-                      await c.read();
+                      // await c.read();
                     },
                     onNotificationPressed: () async {
                       await c.setNotifyValue(!c.isNotifying);
@@ -205,21 +286,21 @@ class DeviceScreen extends StatelessWidget {
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
-        title: Text(device.name),
+        title: Text(scanResult.device.name),
         actions: <Widget>[
           StreamBuilder<BluetoothDeviceState>(
-            stream: device.state,
+            stream: scanResult.device.state,
             initialData: BluetoothDeviceState.connecting,
             builder: (c, snapshot) {
               VoidCallback? onPressed;
               String text;
               switch (snapshot.data) {
                 case BluetoothDeviceState.connected:
-                  onPressed = () => device.disconnect();
+                  onPressed = () => scanResult.device.disconnect();
                   text = 'DISCONNECT';
                   break;
                 case BluetoothDeviceState.disconnected:
-                  onPressed = () => device.connect();
+                  onPressed = () => scanResult.device.connect();
                   text = 'CONNECT';
                   break;
                 default:
@@ -227,7 +308,7 @@ class DeviceScreen extends StatelessWidget {
                   text = snapshot.data.toString().substring(21).toUpperCase();
                   break;
               }
-              return FlatButton(
+              return ElevatedButton(
                   onPressed: onPressed,
                   child: Text(
                     text,
@@ -244,7 +325,7 @@ class DeviceScreen extends StatelessWidget {
         child: Column(
           children: <Widget>[
             StreamBuilder<BluetoothDeviceState>(
-              stream: device.state,
+              stream: scanResult.device.state,
               initialData: BluetoothDeviceState.connecting,
               builder: (c, snapshot) => ListTile(
                 leading: (snapshot.data == BluetoothDeviceState.connected)
@@ -252,16 +333,16 @@ class DeviceScreen extends StatelessWidget {
                     : Icon(Icons.bluetooth_disabled),
                 title: Text(
                     'Device is ${snapshot.data.toString().split('.')[1]}.'),
-                subtitle: Text('${device.id}'),
+                subtitle: Text('${scanResult.device.id}'),
                 trailing: StreamBuilder<bool>(
-                  stream: device.isDiscoveringServices,
+                  stream: scanResult.device.isDiscoveringServices,
                   initialData: false,
                   builder: (c, snapshot) => IndexedStack(
                     index: snapshot.data! ? 1 : 0,
                     children: <Widget>[
                       IconButton(
                         icon: Icon(Icons.refresh),
-                        onPressed: () => device.discoverServices(),
+                        onPressed: () => scanResult.device.discoverServices(),
                       ),
                       IconButton(
                         icon: SizedBox(
@@ -279,19 +360,19 @@ class DeviceScreen extends StatelessWidget {
               ),
             ),
             StreamBuilder<int>(
-              stream: device.mtu,
+              stream: scanResult.device.mtu,
               initialData: 0,
               builder: (c, snapshot) => ListTile(
                 title: Text('MTU Size'),
                 subtitle: Text('${snapshot.data} bytes'),
                 trailing: IconButton(
                   icon: Icon(Icons.edit),
-                  onPressed: () => device.requestMtu(223),
+                  onPressed: () => scanResult.device.requestMtu(223),
                 ),
               ),
             ),
             StreamBuilder<List<BluetoothService>>(
-              stream: device.services,
+              stream: scanResult.device.services,
               initialData: [],
               builder: (c, snapshot) {
                 return Column(

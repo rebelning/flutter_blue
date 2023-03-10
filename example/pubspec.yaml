@@ -9,6 +9,8 @@ dependencies:
   flutter:
     sdk: flutter
 
+  enough_convert: ^1.6.0
+
 dev_dependencies:
   flutter_test:
     sdk: flutter
